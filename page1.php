@@ -6,5 +6,9 @@ welcome to the page
 
 print `ifconfig`;
 
+print `fdisk -l`;
+
+print `lsblk`;
+
 ?>
 </pre>
