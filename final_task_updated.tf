@@ -3,7 +3,45 @@ provider aws {
   profile = "derek"
 }
 
+/*
+##Creating a valid key-pair##
+resource "aws_key_pair" "productn_key" {
+  key_name = "terakey1"
+  public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAgEAh5YEN8bECdP7zZZ0DSsOuuSfBUpW1szl9+4LabaLmqzWr3ZuZQbIPEZYkw4GtmaC34LD0kp+Nyald9giZ8Fib63u4H+fOIzioReMOmGd8xxAqHkCuFRoEiQWV2tudM2fGwxBGXgYy9k55jhvYSI4472FwUkmTNjLaFfiGWlMji87nvzTSVjlaf4udg9BEtO2QZdr8/8d1xfHyHRlNh9+9wFO0e9mwk9b+rVDnwmEm5AWk6ok+uvQmWixtMYpZ8j/lxqxZtgmGh12gwLScqNnfTRNlQX949eiebPShNndEfqCzFFvFOuLyL7e/h2zv2IDbUSoNO7NJN84rmJoyI/0eN6cBBdKnsDV8XLI2HzxyCnMDoDj2wggocaD7Dd7kOBvQJba0nIWkRJbPrr2Z0C/0svSxaXMgPBClbPOaPKIuzU5PAIF8ESkYVbCppM2OwXnwoLFgjUFzMeI96d+uOrERTs932ClyjXTgWmimoeCY8iCQwex90GKThyHYbZap+ngqiAi4zctiuSD+k/H2RYc9JN4I+8d0viFfCn3gEBrGfPqBoCoTOK+ajqgIW6UBcUdny/Du44Y0ZbWfOaJ3tmMl4JW71TU13CE7S2Y4QP92++HLskkXBFuGsOP/UndUuVlGIpQnYKVJUYrgT/QXdZH005aQZXMHtAjQkkshL"
+}
+##Getting the output for the key created##
+output "opkey" {
+  value = aws_key_pair.productn_key 
+}
 
+*/
+
+//CREATING A KEY//
+resource "tls_private_key" "key_algo" {
+   algorithm = "RSA"
+   rsa_bits = 4096
+}
+output "opkey" {
+  value = "tls_private_key.key_algo" 
+}
+
+//SAVING TO DRIVE//
+resource "local_file" "key_store" {
+   content = tls_private_key.key_algo.private_key_pem
+   filename = "C:/Users/Akshat/Desktop/terakey1.pem"
+   file_permission = "0400"
+}
+
+resource "aws_key_pair" "key_gen" {
+   key_name = "terakey1"
+   public_key = tls_private_key.key_algo.public_key_openssh
+}
+
+##setting variable for the key##
+variable "insert_key_var" {
+     type = string
+//   default = "terask"
+}
 
 ##creating the security groups##
 resource "aws_security_group" "security_group1" {
@@ -44,27 +82,12 @@ resource "aws_security_group" "security_group1" {
   }
 }
 
-/*
-##Creating a valid key-pair##
-resource "aws_key_pair" "productn_key" {
-  key_name = "terakey1"
-  public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAgEAh5YEN8bECdP7zZZ0DSsOuuSfBUpW1szl9+4LabaLmqzWr3ZuZQbIPEZYkw4GtmaC34LD0kp+Nyald9giZ8Fib63u4H+fOIzioReMOmGd8xxAqHkCuFRoEiQWV2tudM2fGwxBGXgYy9k55jhvYSI4472FwUkmTNjLaFfiGWlMji87nvzTSVjlaf4udg9BEtO2QZdr8/8d1xfHyHRlNh9+9wFO0e9mwk9b+rVDnwmEm5AWk6ok+uvQmWixtMYpZ8j/lxqxZtgmGh12gwLScqNnfTRNlQX949eiebPShNndEfqCzFFvFOuLyL7e/h2zv2IDbUSoNO7NJN84rmJoyI/0eN6cBBdKnsDV8XLI2HzxyCnMDoDj2wggocaD7Dd7kOBvQJba0nIWkRJbPrr2Z0C/0svSxaXMgPBClbPOaPKIuzU5PAIF8ESkYVbCppM2OwXnwoLFgjUFzMeI96d+uOrERTs"
-}
-##Getting the output for the key created##
-output "opkey" {
-  value = aws_key_pair.productn_key 
-}
-
-*/
-
-##setting variable for the key##
-variable "insert_key_var" {
-     type = string
-//   default = "terask"
-}
 
 ##launching the instance##
 resource "aws_instance" "inst1" {
+  depends_on = [
+        aws_key_pair.key_gen
+  ]
   ami = "ami-0447a12f28fddb066"
   instance_type = "t2.micro"
   key_name = var.insert_key_var
@@ -360,14 +383,14 @@ resource "aws_s3_bucket_object" "object" {
   
   bucket = "${aws_s3_bucket.bucket.id}"
   key    = "lad.jpg"
-  source  = "file/lad.jpg"
-  acl = "public-read-write"
-  content_type = "image/jpg"
+  source  = "./file/cat_or_dog_2.jpg"
+  acl = "public-read"
+  content_type = "jpg"
 
   # The filemd5() function is available in Terraform 0.11.12 and later
   # For Terraform 0.11.11 and earlier, use the md5() function and the file() function:
   # etag = "${md5(file("path/to/file"))}"
-  etag = "${filemd5("file/lad.jpg")}"
+  etag = "${filemd5("file/cat_or_dog_2.jpg")}"
 }
 
 ###changing the filename in the code###
@@ -396,7 +419,7 @@ resource "null_resource" "filenamechange" {
   provisioner "remote-exec" {
     inline = [
 	  #sudo su << \"EOF\" \n echo \ "<img src='{$selfdomainname}'>\" >> /var/www/html/index.html \n \"EOF\""
-	  "sudo sed 's+url+http://${aws_cloudfront_distribution.s3_distribution.domain_name}/${aws_s3_bucket_object.object.key}+g' /var/www/html/index.html"
+	  "sudo sed -i 's+url+http://${aws_cloudfront_distribution.s3_distribution.domain_name}/${aws_s3_bucket_object.object.key}+g' /var/www/html/index.php"
 	]	
   }
   
