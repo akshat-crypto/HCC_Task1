@@ -9,4 +9,4 @@ print `ifconfig`;
 ?>
 
 </pre>
-<img src='url'>
+<img src='url' height='500' width='500' />
